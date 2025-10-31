@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Búsqueda de Usuarios Roblox</title>
+  <link href="https://images.rbxcdn.com/e854eb7b2951ac03edba9a2681032bba.ico" rel="icon" />
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 2rem;
+      background: linear-gradient(135deg, #000000 60%, #111111);
+      color: #f4f4f4;
+      text-align: center;
+    }
+
+    h1 {
+      color: #ff4747;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px #ff4747;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #ccc;
+    }
+
+    input {
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #fff;
+      outline: none;
+      width: 200px;
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      border-color: #ff4747;
+      box-shadow: 0 0 10px #ff4747;
+    }
+
+    button {
+      font-size: 1rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 0.5rem;
+      border: none;
+      background: #ff4747;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: #ff6969;
+      transform: scale(1.05);
+    }
+
+    #result {
+      margin: 2rem auto 0;
+      padding: 1rem;
+      background: #1a1a1a;
+      border-radius: 1rem;
+      width: 250px;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 71, 71, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    #result:hover {
+      box-shadow: 0 0 25px rgba(255, 71, 71, 0.6);
+      transform: translateY(-3px);
+    }
+
+    img.avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin-top: 0.5rem;
+      border: 2px solid #ff4747;
+      box-shadow: 0 0 15px rgba(255, 71, 71, 0.3);
+      transition: transform 0.3s ease;
+    }
+
+    img.avatar:hover {
+      transform: scale(1.1);
+    }
+
+    .loading {
+      animation: pulse 1s infinite alternate;
+      color: #ff4747;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Buscador de Usuarios Roblox</h1>
+  <p>Escribe un nombre de usuario para ver su avatar:</p>
+  <input type="text" id="usernameInput" placeholder="Ej: Builderman">
+  <button id="searchButton">Buscar</button>
+
+  <div id="result"></div>
+
+  <script>
+    async function getUserId(username) {
+      const proxy = 'https://corsproxy.io/?';
+      const url = proxy + 'https://users.roblox.com/v1/usernames/users';
+      const body = { usernames: [username], excludeBannedUsers: true };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+      if (!data.data || data.data.length === 0)
+        throw new Error('Usuario no encontrado');
+      return data.data[0].id;
+    }
+
+    async function getAvatarThumbnail(userId) {
+      const proxy = 'https://corsproxy.io/?';
+      const url = proxy + `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=png&isCircular=false`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (!data.data || data.data.length === 0)
+        throw new Error('No se encontró avatar');
+      return data.data[0].imageUrl;
+    }
+
+    document.getElementById('searchButton').addEventListener('click', async () => {
+      const username = document.getElementById('usernameInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      if (!username) {
+        resultDiv.innerHTML = '<p style="color:red;">⚠️ Escribe un nombre.</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p class="loading">🔍 Buscando usuario...</p>';
+
+      try {
+        const userId = await getUserId(username);
+        const avatarUrl = await getAvatarThumbnail(userId);
+        resultDiv.innerHTML = `
+          <p><strong>${username}</strong></p>
+          <p style="font-size: 0.8rem; color: #aaa;">ID: ${userId}</p>
+          <img class="avatar" src="${avatarUrl}" alt="Avatar de ${username}">
+        `;
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">❌ ${err.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
