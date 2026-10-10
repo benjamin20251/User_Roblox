@@ -1,70 +1,484 @@
 
-export default async function handler(req, res) {
-  res.setHeader("Cache-Control", "no-store");
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080808">
+  <title>Roblox User Finder</title>
+  <link rel="icon" href="https://images.rbxcdn.com/e854eb7b2951ac03edba9a2681032bba.ico">
 
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "method" });
-  }
+  <style>
+    :root {
+      --bg: #080808;
+      --accent: #ff4747;
+      --text: #f4f4f4;
+      --muted: #aaa;
+    }
 
-  const username = String(req.query.username || "").trim();
+    * {
+      box-sizing: border-box;
+    }
 
-  if (!username || username.length > 20) {
-    return res.status(400).json({ error: "invalid" });
-  }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px 16px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: radial-gradient(ellipse at top, #1c1010, var(--bg) 65%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
 
-  try {
-    const userResponse = await fetch(
-      "https://users.roblox.com/v1/usernames/users",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          usernames: [username],
-          excludeBannedUsers: false
-        }),
-        signal: AbortSignal.timeout(10000)
+    .app {
+      width: 100%;
+      max-width: 820px;
+      padding-top: 58px;
+      position: relative;
+    }
+
+    .lang-switch {
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 10;
+    }
+
+    .lang-btn {
+      padding: 9px 12px;
+      color: var(--text);
+      background: #171717;
+      border: 1px solid #333;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .lang-list {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 44px;
+      min-width: 150px;
+      padding: 6px;
+      background: #202020;
+      border: 1px solid #333;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px #000a;
+    }
+
+    .lang-list button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      border-radius: 6px;
+      color: var(--text);
+      text-align: left;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .lang-list button:hover {
+      background: #393939;
+    }
+
+    .card {
+      padding: 28px 20px;
+      text-align: center;
+      background: #ffffff06;
+      border: 1px solid #ff47472b;
+      border-radius: 16px;
+      box-shadow: 0 15px 40px #0008;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: clamp(23px, 5vw, 30px);
+    }
+
+    .subtitle,
+    .note {
+      color: var(--muted);
+    }
+
+    .subtitle {
+      margin-bottom: 24px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input {
+      width: min(100%, 260px);
+      padding: 12px 14px;
+      border: 1px solid #333;
+      border-radius: 10px;
+      outline: none;
+      background: #101010;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    button.search {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.search:hover {
+      background: #ff6868;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    #result {
+      width: 220px;
+      max-width: 100%;
+      margin: 24px auto 0;
+      padding: 14px;
+      overflow-wrap: anywhere;
+      background: #ffffff08;
+      border: 1px solid #ff47472b;
+      border-radius: 12px;
+      box-shadow: 0 6px 25px #0005;
+    }
+
+    #result:empty {
+      display: none;
+    }
+
+    .avatar {
+      display: block;
+      width: 110px;
+      height: 110px;
+      margin: 12px auto 0;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .idline {
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .error {
+      color: #ff7777;
+    }
+
+    .loading {
+      color: var(--accent);
+      animation: pulse 1s infinite alternate;
+    }
+
+    .note {
+      margin: 20px 0 0;
+      font-size: 14px;
+    }
+
+    @keyframes pulse {
+      from { opacity: .45; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 460px) {
+      .card {
+        padding: 24px 14px;
       }
-    );
 
-    if (!userResponse.ok) {
-      throw new Error("Roblox user API: " + userResponse.status);
+      .controls {
+        flex-direction: column;
+      }
+
+      input,
+      button.search {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <div class="lang-switch">
+      <button
+        class="lang-btn"
+        id="langBtn"
+        type="button"
+        aria-expanded="false"
+        aria-haspopup="true"
+      >
+        <span id="langLabel">Cambiar</span> ▾
+      </button>
+
+      <div class="lang-list" id="langList">
+        <button type="button" data-lang="en">English</button>
+        <button type="button" data-lang="es">Español</button>
+        <button type="button" data-lang="pt">Português</button>
+      </div>
+    </div>
+
+    <section class="card">
+      <h1 id="title">Buscador de Usuarios Roblox</h1>
+
+      <p class="subtitle" id="subtitle">
+        Escribe un nombre de usuario para ver su avatar
+      </p>
+
+      <form class="controls" id="searchForm">
+        <input
+          id="usernameInput"
+          type="text"
+          placeholder="Ej: Builderman"
+          maxlength="20"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Nombre de usuario de Roblox"
+          required
+        >
+
+        <button class="search" id="searchButton" type="submit">
+          Buscar
+        </button>
+      </form>
+
+      <div id="result" aria-live="polite"></div>
+
+      <p class="note" id="noteText">
+        Si alguien te pasa un nombre y no sabes si es real, compruébalo aquí.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const I18N = {
+      en: {
+        lang: "Change",
+        title: "Roblox User Finder",
+        subtitle: "Type a Roblox username to see their avatar",
+        placeholder: "Ex: Builderman",
+        search: "Search",
+        loading: "🔍 Searching...",
+        empty: "⚠️ Enter a username.",
+        notFound: "❌ User not found.",
+        noAvatar: "❌ Avatar not found.",
+        network: "❌ Could not connect to Roblox. Try again later.",
+        note: "If someone sends you a name and you're not sure they're real, check here."
+      },
+      es: {
+        lang: "Cambiar",
+        title: "Buscador de Usuarios Roblox",
+        subtitle: "Escribe un nombre de usuario para ver su avatar",
+        placeholder: "Ej: Builderman",
+        search: "Buscar",
+        loading: "🔍 Buscando...",
+        empty: "⚠️ Escribe un nombre de usuario.",
+        notFound: "❌ Usuario no encontrado.",
+        noAvatar: "❌ No se encontró el avatar.",
+        network: "❌ No se pudo conectar con Roblox. Inténtalo más tarde.",
+        note: "Si alguien te pasa un nombre y no sabes si es real, compruébalo aquí."
+      },
+      pt: {
+        lang: "Mudar",
+        title: "Buscador de Usuários Roblox",
+        subtitle: "Digite um nome de usuário para ver o avatar",
+        placeholder: "Ex: Builderman",
+        search: "Buscar",
+        loading: "🔍 Procurando...",
+        empty: "⚠️ Digite um nome de usuário.",
+        notFound: "❌ Usuário não encontrado.",
+        noAvatar: "❌ Avatar não encontrado.",
+        network: "❌ Não foi possível conectar ao Roblox. Tente novamente.",
+        note: "Se alguém te passar um nome e você não souber se é real, confira aqui."
+      }
+    };
+
+    const $ = id => document.getElementById(id);
+
+    const form = $("searchForm");
+    const input = $("usernameInput");
+    const result = $("result");
+    const searchButton = $("searchButton");
+    const langBtn = $("langBtn");
+    const langList = $("langList");
+
+    let currentLang = "es";
+    let lastError = null;
+
+    function getLanguage() {
+      try {
+        const saved = localStorage.getItem("rbx_lang");
+        if (saved && I18N[saved]) return saved;
+      } catch {}
+
+      const language = navigator.language.toLowerCase();
+
+      if (language.startsWith("pt")) return "pt";
+      if (language.startsWith("es")) return "es";
+
+      return "en";
     }
 
-    const userData = await userResponse.json();
-    const user = userData.data?.[0];
+    function message(text, type = "") {
+      result.replaceChildren();
 
-    if (!user) {
-      return res.status(404).json({ error: "notfound" });
+      const p = document.createElement("p");
+      p.className = type;
+      p.textContent = text;
+
+      result.appendChild(p);
     }
 
-    const avatarUrl =
-      "https://thumbnails.roblox.com/v1/users/avatar-headshot" +
-      `?userIds=${user.id}&size=150x150&format=Png&isCircular=false`;
+    function applyLang(lang) {
+      if (!I18N[lang]) lang = "en";
 
-    const avatarResponse = await fetch(avatarUrl, {
-      signal: AbortSignal.timeout(10000)
+      currentLang = lang;
+      const t = I18N[lang];
+
+      document.documentElement.lang = lang;
+      $("langLabel").textContent = t.lang;
+      $("title").textContent = t.title;
+      $("subtitle").textContent = t.subtitle;
+      input.placeholder = t.placeholder;
+      searchButton.textContent = t.search;
+      $("noteText").textContent = t.note;
+
+      try {
+        localStorage.setItem("rbx_lang", lang);
+      } catch {}
+
+      if (lastError) {
+        message(t[lastError], "error");
+      }
+    }
+
+    langBtn.addEventListener("click", event => {
+      event.stopPropagation();
+
+      const open = langList.style.display !== "block";
+      langList.style.display = open ? "block" : "none";
+      langBtn.setAttribute("aria-expanded", String(open));
     });
 
-    if (!avatarResponse.ok) {
-      throw new Error("Roblox thumbnail API: " + avatarResponse.status);
-    }
+    langList.addEventListener("click", event => {
+      const button = event.target.closest("[data-lang]");
+      if (!button) return;
 
-    const avatarData = await avatarResponse.json();
-    const thumbnail = avatarData.data?.[0];
-
-    if (!thumbnail?.imageUrl) {
-      return res.status(502).json({ error: "noavatar" });
-    }
-
-    return res.status(200).json({
-      id: user.id,
-      name: user.name,
-      displayName: user.displayName,
-      avatarUrl: thumbnail.imageUrl
+      applyLang(button.dataset.lang);
+      langList.style.display = "none";
+      langBtn.setAttribute("aria-expanded", "false");
     });
-  } catch (error) {
-    console.error("Roblox lookup failed:", error);
 
-    return res.status(502).json({ error: "network" });
-  }
-}
+    document.addEventListener("click", event => {
+      if (!event.target.closest(".lang-switch")) {
+        langList.style.display = "none";
+        langBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    function showUser(user) {
+      lastError = null;
+      result.replaceChildren();
+
+      const name = document.createElement("p");
+      name.style.fontWeight = "700";
+      name.textContent = user.name;
+
+      const displayName = document.createElement("p");
+      displayName.style.color = "#aaa";
+      displayName.textContent = user.displayName || user.name;
+
+      const id = document.createElement("p");
+      id.className = "idline";
+      id.textContent = "ID: " + user.id;
+
+      const avatar = document.createElement("img");
+      avatar.className = "avatar";
+      avatar.alt = "Roblox avatar";
+      avatar.src = user.avatarUrl;
+      avatar.referrerPolicy = "no-referrer";
+
+      avatar.onerror = () => {
+        avatar.alt = "Avatar no disponible";
+      };
+
+      result.append(name, displayName, id, avatar);
+    }
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const username = input.value.trim();
+
+      if (!username) {
+        lastError = "empty";
+        message(I18N[currentLang].empty, "error");
+        return;
+      }
+
+      lastError = null;
+      searchButton.disabled = true;
+      message(I18N[currentLang].loading, "loading");
+
+      try {
+        // Este endpoint debe existir en tu alojamiento.
+        const response = await fetch(
+          "/api/roblox?username=" + encodeURIComponent(username),
+          { signal: AbortSignal.timeout(20000) }
+        );
+
+        const data = await response.json();
+
+        if (response.status === 404 && data.error === "notfound") {
+          lastError = "notFound";
+          message(I18N[currentLang].notFound, "error");
+          return;
+        }
+
+        if (response.status === 404 && data.error === "noavatar") {
+          lastError = "noAvatar";
+          message(I18N[currentLang].noAvatar, "error");
+          return;
+        }
+
+        if (!response.ok || !data.id || !data.avatarUrl) {
+          throw new Error(data.error || "network");
+        }
+
+        showUser(data);
+      } catch (error) {
+        console.error("Error buscando usuario:", error);
+
+        lastError = "network";
+        message(I18N[currentLang].network, "error");
+      } finally {
+        searchButton.disabled = false;
+      }
+    });
+
+    applyLang(getLanguage());
+  </script>
+</body>
+</html>
