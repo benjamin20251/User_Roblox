@@ -16,9 +16,7 @@
       --muted: #aaa;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -80,9 +78,7 @@
       cursor: pointer;
     }
 
-    .lang-list button:hover {
-      background: #393939;
-    }
+    .lang-list button:hover { background: #393939; }
 
     .card {
       padding: 28px 20px;
@@ -99,14 +95,9 @@
       font-size: clamp(23px, 5vw, 30px);
     }
 
-    .subtitle,
-    .note {
-      color: var(--muted);
-    }
+    .subtitle, .note { color: var(--muted); }
 
-    .subtitle {
-      margin-bottom: 24px;
-    }
+    .subtitle { margin-bottom: 24px; }
 
     .controls {
       display: flex;
@@ -127,9 +118,7 @@
       font-size: 16px;
     }
 
-    input:focus {
-      border-color: var(--accent);
-    }
+    input:focus { border-color: var(--accent); }
 
     button.search {
       padding: 12px 18px;
@@ -142,14 +131,8 @@
       cursor: pointer;
     }
 
-    button.search:hover {
-      background: #ff6868;
-    }
-
-    button:disabled {
-      opacity: .6;
-      cursor: wait;
-    }
+    button.search:hover { background: #ff6868; }
+    button:disabled { opacity: .6; cursor: wait; }
 
     #result {
       width: 220px;
@@ -163,9 +146,7 @@
       box-shadow: 0 6px 25px #0005;
     }
 
-    #result:empty {
-      display: none;
-    }
+    #result:empty { display: none; }
 
     .avatar {
       display: block;
@@ -183,19 +164,9 @@
       font-size: 13px;
     }
 
-    .error {
-      color: #ff7777;
-    }
-
-    .loading {
-      color: var(--accent);
-      animation: pulse 1s infinite alternate;
-    }
-
-    .note {
-      margin: 20px 0 0;
-      font-size: 14px;
-    }
+    .error { color: #ff7777; }
+    .loading { color: var(--accent); animation: pulse 1s infinite alternate; }
+    .note { margin: 20px 0 0; font-size: 14px; }
 
     @keyframes pulse {
       from { opacity: .45; }
@@ -203,19 +174,9 @@
     }
 
     @media (max-width: 460px) {
-      .card {
-        padding: 24px 14px;
-      }
-
-      .controls {
-        flex-direction: column;
-      }
-
-      input,
-      button.search {
-        width: 100%;
-        max-width: 300px;
-      }
+      .card { padding: 24px 14px; }
+      .controls { flex-direction: column; }
+      input, button.search { width: 100%; max-width: 300px; }
     }
   </style>
 </head>
@@ -223,13 +184,8 @@
 <body>
   <main class="app">
     <div class="lang-switch">
-      <button
-        class="lang-btn"
-        id="langBtn"
-        type="button"
-        aria-expanded="false"
-        aria-haspopup="true"
-      >
+      <button class="lang-btn" id="langBtn" type="button"
+        aria-expanded="false" aria-haspopup="true">
         <span id="langLabel">Cambiar</span> ▾
       </button>
 
@@ -242,22 +198,15 @@
 
     <section class="card">
       <h1 id="title">Buscador de Usuarios Roblox</h1>
-
       <p class="subtitle" id="subtitle">
         Escribe un nombre de usuario para ver su avatar
       </p>
 
       <form class="controls" id="searchForm">
-        <input
-          id="usernameInput"
-          type="text"
-          placeholder="Ej: Builderman"
-          maxlength="20"
-          autocomplete="off"
-          spellcheck="false"
-          aria-label="Nombre de usuario de Roblox"
-          required
-        >
+        <input id="usernameInput" type="text"
+          placeholder="Ej: Builderman" maxlength="20"
+          autocomplete="off" spellcheck="false"
+          aria-label="Nombre de usuario de Roblox" required>
 
         <button class="search" id="searchButton" type="submit">
           Buscar
@@ -316,7 +265,6 @@
     };
 
     const $ = id => document.getElementById(id);
-
     const form = $("searchForm");
     const input = $("usernameInput");
     const result = $("result");
@@ -333,21 +281,17 @@
         if (saved && I18N[saved]) return saved;
       } catch {}
 
-      const language = navigator.language.toLowerCase();
-
+      const language = (navigator.language || "es").toLowerCase();
       if (language.startsWith("pt")) return "pt";
       if (language.startsWith("es")) return "es";
-
       return "en";
     }
 
     function message(text, type = "") {
       result.replaceChildren();
-
       const p = document.createElement("p");
       p.className = type;
       p.textContent = text;
-
       result.appendChild(p);
     }
 
@@ -369,14 +313,11 @@
         localStorage.setItem("rbx_lang", lang);
       } catch {}
 
-      if (lastError) {
-        message(t[lastError], "error");
-      }
+      if (lastError) message(t[lastError], "error");
     }
 
     langBtn.addEventListener("click", event => {
       event.stopPropagation();
-
       const open = langList.style.display !== "block";
       langList.style.display = open ? "block" : "none";
       langBtn.setAttribute("aria-expanded", String(open));
@@ -418,7 +359,6 @@
       avatar.className = "avatar";
       avatar.alt = "Roblox avatar";
       avatar.src = user.avatarUrl;
-      avatar.referrerPolicy = "no-referrer";
 
       avatar.onerror = () => {
         avatar.alt = "Avatar no disponible";
@@ -443,23 +383,23 @@
       message(I18N[currentLang].loading, "loading");
 
       try {
-        // Este endpoint debe existir en tu alojamiento.
+        // roblox.js debe estar configurado en el servidor como endpoint.
         const response = await fetch(
-          "/api/roblox?username=" + encodeURIComponent(username),
+          "./roblox.js?username=" + encodeURIComponent(username),
           { signal: AbortSignal.timeout(20000) }
         );
+
+        const contentType = response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+          throw new Error("endpoint");
+        }
 
         const data = await response.json();
 
         if (response.status === 404 && data.error === "notfound") {
           lastError = "notFound";
           message(I18N[currentLang].notFound, "error");
-          return;
-        }
-
-        if (response.status === 404 && data.error === "noavatar") {
-          lastError = "noAvatar";
-          message(I18N[currentLang].noAvatar, "error");
           return;
         }
 
@@ -470,7 +410,6 @@
         showUser(data);
       } catch (error) {
         console.error("Error buscando usuario:", error);
-
         lastError = "network";
         message(I18N[currentLang].network, "error");
       } finally {
